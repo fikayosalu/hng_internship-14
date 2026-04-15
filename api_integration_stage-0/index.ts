@@ -1,9 +1,12 @@
 import express from "express";
+import "dotenv/config";
+import cors from "cors";
 import type { Request, Response } from "express";
 import axios from "axios";
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 app.get("/api/classify", async (req: Request, res: Response) => {
