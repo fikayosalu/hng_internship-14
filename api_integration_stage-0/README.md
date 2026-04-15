@@ -18,7 +18,7 @@ A small Express + TypeScript API that takes a name and returns a predicted gende
 Clone the repo and install dependencies:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/fikayosalu/hng_internship-14.git
 cd api_integration_stage-0
 npm install
 ```
