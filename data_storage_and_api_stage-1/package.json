@@ -4,7 +4,7 @@
 	"description": "HNG Internship task 2",
 	"license": "ISC",
 	"author": "",
-	"type": "module",
+	"type": "commonjs",
 	"main": "index.js",
 	"scripts": {
 		"dev": "npx nodemon --exec tsx index.ts",

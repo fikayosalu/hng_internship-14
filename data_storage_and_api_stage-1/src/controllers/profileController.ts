@@ -1,8 +1,32 @@
 import { Request, Response } from "express";
+import Profile from "../models/profileModel";
 
 // ── GET All Profiles ──
 
-export const getAllProfiles = async (req: Request, res: Response) => {};
+export const getAllProfiles = async (req: Request, res: Response) => {
+	const queryObj = { ...req.query };
+	const excludedFields = ["page", "sort_by", "order", "limit", "fields"];
+
+	excludedFields.forEach((el) => delete queryObj[el]);
+
+	try {
+		let query = Profile.find(queryObj);
+
+		if (req.query.sort_by) {
+			let sortBy = req.query.sort_by as string;
+
+			if (req.query.order && req.query.order === "desc") {
+				sortBy = `-${sortBy}`;
+				query = query.sort(sortBy);
+			} else {
+				query = query.sort(sortBy);
+			}
+		}
+
+		if (req.query.page) {
+		}
+	} catch (error) {}
+};
 
 // --- Create a Profile ----
 export const createProfile = async (req: Request, res: Response) => {
