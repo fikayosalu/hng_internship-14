@@ -17,17 +17,8 @@ app.use(cors);
 
 // --- MongoDB Database Set up ---
 
-mongoose
-	.connect(process.env.DATABASE!)
-	.then(() => {
-		console.log("Database setup Successful");
-	})
-	.catch((err) => {
-		console.log(`Something is wrong with database ${err.message}`);
-	});
+mongoose.connect(process.env.DATABASE!);
 
 // --- Set up server to listen for API calls
 
-app.listen(PORT, () => {
-	`Server is listening on http://localhost:${PORT}`;
-});
+app.listen(PORT, () => {});

@@ -7,7 +7,7 @@
 
 		// Environment Settings
 		// See also https://aka.ms/tsconfig/module
-		"module": "es2022",
+		"module": "commonjs",
 		"target": "es2022",
 		"types": [],
 		// For nodejs:
@@ -28,7 +28,7 @@
 		// "noImplicitReturns": true,
 		"noImplicitOverride": true,
 		"noUnusedLocals": true,
-		"noUnusedParameters": true,
+		// "noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true,
 		// "noPropertyAccessFromIndexSignature": true,
 
