@@ -1,3 +1,7 @@
+/**
+ * This module contains endpoint functions for profiles
+ */
+
 import { Request, Response } from "express";
 import Profile from "../models/profileModel";
 
@@ -23,100 +27,106 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 			}
 		}
 
-		if (req.query.page) {
+		if (req.query.page || req.query.limit) {
+			let page = 1;
+			let limit = 10;
+			try {
+				page = Number(req.query.page) || 1;
+				limit = Number(req.query.limit) || 10;
+			} catch (error) {
+				res
+					.status(422)
+					.json({ status: "error", message: "Invalid parameter type" });
+			}
+			const skip = (page - 1) * limit;
+			if (limit > 50) {
+				return res
+					.status(400)
+					.json({ status: "error", message: "limit should be less that 50" });
+			}
+
+			query = query.skip(skip).limit(limit);
 		}
-	} catch (error) {}
+		query = query.select("-__v");
+		const profiles = await query;
+
+		res.status(200).json({
+			status: "success",
+			page: req.query.page || 1,
+			limit: req.query.limit || 10,
+			total: profiles.length,
+			data: profiles,
+		});
+	} catch (error) {
+		res.status(400).json({ status: "error", message: "" });
+	}
 };
 
 // --- Create a Profile ----
 export const createProfile = async (req: Request, res: Response) => {
-	// const { name } = req.body;
-	// if (!name || (typeof name === "string" && name.trim() === "")) {
-	// 	return res
-	// 		.status(400)
-	// 		.json({ status: "error", message: "Missing or empty name" });
-	// }
-	// if (typeof name !== "string") {
-	// 	return res.status(422).json({ status: "error", message: "Invalid type" });
-	// }
-	// const profiles = readProfiles();
-	// const existing = profiles.find(
-	// 	(p) => p.name.toLowerCase() === name.toLowerCase(),
-	// );
-	// if (existing) {
-	// 	return res.status(200).json({
-	// 		status: "success",
-	// 		message: "Profile already exists",
-	// 		data: existing,
-	// 	});
-	// }
-	// try {
-	// 	const { gender, gender_probability, count } = await genderize(name);
-	// 	const { age, age_group } = await agify(name);
-	// 	const { country_id, country_probability } = await nationalize(name);
-	// 	const profile: Profile = {
-	// 		id: uuidv7(),
-	// 		name,
-	// 		gender,
-	// 		gender_probability: parseFloat(gender_probability.toFixed(2)),
-	// 		sample_size: count,
-	// 		age,
-	// 		age_group,
-	// 		country_id,
-	// 		country_probability: parseFloat(country_probability.toFixed(2)),
-	// 		created_at: new Date().toISOString(),
-	// 	};
-	// 	profiles.push(profile);
-	// 	writeProfiles(profiles);
-	// 	return res.status(201).json({
-	// 		status: "success",
-	// 		data: profile,
-	// 	});
-	// } catch (error) {
-	// 	if (error instanceof Error) {
-	// 		return res.status(502).json({
-	// 			status: "error",
-	// 			message: `${error.message} returned an invalid response`,
-	// 		});
-	// 	}
-	// 	return res.status(502).json({
-	// 		status: "error",
-	// 		message: "Aasfa returned an invalid response",
-	// 	});
-	// }
+	const bodyArr = [
+		"name",
+		"age",
+		"age_group",
+		"country_name",
+		"country_id",
+		"gender",
+		"gender_probability",
+		"country_probability",
+	];
+
+	bodyArr.forEach((el) => {
+		if (!(el in req.body)) {
+			res
+				.status(400)
+				.json({ status: "error", message: "Missing or empty parameter" });
+		}
+	});
+	try {
+		const name = await Profile.find({ name: req.body.name.trim() });
+		if (name) {
+			res.status(400).json({ status: "error", message: "name" });
+		}
+
+		const profile = await Profile.create(req.body);
+
+		res.status(201).json({
+			status: "success",
+			data: profile,
+		});
+	} catch (error) {
+		res
+			.status(400)
+			.json({ status: "error", message: "Missing or empty parameter" });
+	}
 };
 
 // ---- GET A PROFILE BY ID ------
 
 export const getProfile = async (req: Request, res: Response) => {
-	// const { id } = req.params;
-	// const profiles = readProfiles();
-	// const profile = profiles.find((p) => p.id === id);
-	// if (!profile) {
-	//   return res.status(404).json({
-	//     status: "error",
-	//     message: "Profile not found",
-	//   });
-	// }
-	// return res.status(200).json({
-	//   status: "success",
-	//   data: profile,
-	// });
+	const { id } = req.params;
+
+	const profile = await Profile.findById(id).select("-__v");
+
+	if (!profile) {
+		res.status(404).json({ status: "error", message: "Profile not found" });
+	}
+
+	res.status(200).json({
+		status: "success",
+		data: profile,
+	});
 };
 
 // ── DELETE a Profile By ID ──
 
 export const deleteProfile = async (req: Request, res: Response) => {
-	// const { id } = req.params;
-	// const profiles = readProfiles();
-	// const index = profiles.findIndex((p) => p.id === id);
-	// if (index === -1) {
-	// 	return res.status(404).json({
-	// 		status: "error",
-	// 		message: "Profile not found",
-	// 	});
-	// }
-	// profiles.splice(index, 1);
-	// writeProfiles(profiles);
-	// return res.sendStatus(204);
+	const { id } = req.params;
+	const profile = await Profile.findByIdAndDelete(id);
+
+	if (!profile) {
+		res.status(404).json({ status: "error", message: "Profile not found" });
+	}
+
+	res.sendStatus(204);
 };
