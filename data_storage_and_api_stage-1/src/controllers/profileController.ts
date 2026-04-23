@@ -10,12 +10,43 @@ import { parseNaturalQuery } from "../utils/queryParser";
 
 export const getAllProfiles = async (req: Request, res: Response) => {
 	const queryObj = { ...req.query };
-	const excludedFields = ["page", "sort_by", "order", "limit", "fields"];
+	const excludedFields = [
+		"page",
+		"sort_by",
+		"order",
+		"limit",
+		"fields",
+		"min_age",
+		"max_age",
+		"min_age",
+		"min_gender_probability",
+		"min_country_probability",
+	];
 
 	excludedFields.forEach((el) => delete queryObj[el]);
 
 	try {
 		let query = Profile.find(queryObj);
+
+		if (req.query.min_age) {
+			const minAge = Number(req.query.min_age);
+			query = query.find({ age: { $gte: minAge } });
+		}
+
+		if (req.query.max_age) {
+			const maxAge = Number(req.query.max_age);
+			query = query.find({ age: { $lte: maxAge } });
+		}
+
+		if (req.query.min_gender_probability) {
+			const minGenderProb = Number(req.query.min_gender_probability);
+			query = query.find({ age: { $gte: minGenderProb } });
+		}
+
+		if (req.query.min_country_probability) {
+			const minCountryProb = Number(req.query.min_country_probability);
+			query = query.find({ age: { $gte: minCountryProb } });
+		}
 
 		if (req.query.sort_by) {
 			let sortBy = req.query.sort_by as string;
@@ -27,19 +58,17 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 				query = query.sort(sortBy);
 			}
 		} else {
-			query = query.sort("createdAt");
+			query = query.sort("age");
 		}
 
 		if (req.query.page || req.query.limit) {
 			const page = Number(req.query.page) || 1;
-			const limit = Number(req.query.limit) || 10;
+			let limit = Number(req.query.limit) || 10;
 
-			const skip = (page - 1) * limit;
 			if (limit > 50) {
-				return res
-					.status(400)
-					.json({ status: "error", message: "limit should be less that 50" });
+				limit = 50;
 			}
+			const skip = (page - 1) * limit;
 
 			query = query.skip(skip).limit(limit);
 		} else {
@@ -52,8 +81,13 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 		const total = await Profile.countDocuments(queryObj);
 		return res.status(200).json({
 			status: "success",
-			page: req.query.page || 1,
-			limit: req.query.limit || 10,
+			page: Number(req.query.page) || 1,
+			limit:
+				Number(req.query.page) > 50
+					? 50
+					: Number(req.query.page)
+						? Number(req.query.page)
+						: 10,
 			total,
 			data: profiles,
 		});
