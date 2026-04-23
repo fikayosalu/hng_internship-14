@@ -8,10 +8,13 @@ import {
 	deleteProfile,
 	getAllProfiles,
 	getProfile,
+	searchProfiles,
 } from "../controllers/profileController";
 
 export const profileRouter = express.Router();
 
-profileRouter.route("/profiles").get(getAllProfiles).post(createProfile);
+profileRouter.route("/").get(getAllProfiles).post(createProfile);
 
-profileRouter.route("/profiles/:id").get(getProfile).delete(deleteProfile);
+profileRouter.route("/search").get(searchProfiles);
+
+profileRouter.route("/:id").get(getProfile).delete(deleteProfile);

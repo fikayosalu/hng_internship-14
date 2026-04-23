@@ -4,6 +4,7 @@
 
 import { Request, Response } from "express";
 import Profile from "../models/profileModel";
+import { parseNaturalQuery } from "../utils/queryParser";
 
 // ── GET All Profiles ──
 
@@ -34,7 +35,7 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 				page = Number(req.query.page) || 1;
 				limit = Number(req.query.limit) || 10;
 			} catch (error) {
-				res
+				return res
 					.status(422)
 					.json({ status: "error", message: "Invalid parameter type" });
 			}
@@ -46,19 +47,23 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 			}
 
 			query = query.skip(skip).limit(limit);
+		} else {
+			const page = 1;
+			const limit = 10;
+			const skip = (page - 1) * limit;
+			query = query.skip(skip).limit(limit);
 		}
-		query = query.select("-__v");
 		const profiles = await query;
-
-		res.status(200).json({
+		const total = await Profile.countDocuments(queryObj);
+		return res.status(200).json({
 			status: "success",
 			page: req.query.page || 1,
 			limit: req.query.limit || 10,
-			total: profiles.length,
+			total,
 			data: profiles,
 		});
 	} catch (error) {
-		res.status(400).json({ status: "error", message: "" });
+		return res.status(400).json({ status: "error", message: `${error}` });
 	}
 };
 
@@ -75,27 +80,30 @@ export const createProfile = async (req: Request, res: Response) => {
 		"country_probability",
 	];
 
-	bodyArr.forEach((el) => {
+	for (const el of bodyArr) {
 		if (!(el in req.body)) {
-			res
+			return res
 				.status(400)
-				.json({ status: "error", message: "Missing or empty parameter" });
+				.json({ status: "error", message: `Missing parameter: ${el}` });
 		}
-	});
+	}
+
 	try {
-		const name = await Profile.find({ name: req.body.name.trim() });
-		if (name) {
-			res.status(400).json({ status: "error", message: "name" });
+		const existingProfile = await Profile.find({ name: req.body.name.trim() });
+		if (existingProfile.length > 0) {
+			return res
+				.status(400)
+				.json({ status: "error", message: "name already exists" });
 		}
 
-		const profile = await Profile.create(req.body);
+		let profile = await Profile.create(req.body);
 
-		res.status(201).json({
+		return res.status(201).json({
 			status: "success",
 			data: profile,
 		});
 	} catch (error) {
-		res
+		return res
 			.status(400)
 			.json({ status: "error", message: "Missing or empty parameter" });
 	}
@@ -104,15 +112,17 @@ export const createProfile = async (req: Request, res: Response) => {
 // ---- GET A PROFILE BY ID ------
 
 export const getProfile = async (req: Request, res: Response) => {
-	const { id } = req.params;
+	const id = req.params.id as string;
 
-	const profile = await Profile.findById(id).select("-__v");
+	const profile = await Profile.find({ id: id });
 
 	if (!profile) {
-		res.status(404).json({ status: "error", message: "Profile not found" });
+		return res
+			.status(404)
+			.json({ status: "error", message: "Profile not found" });
 	}
 
-	res.status(200).json({
+	return res.status(200).json({
 		status: "success",
 		data: profile,
 	});
@@ -121,12 +131,86 @@ export const getProfile = async (req: Request, res: Response) => {
 // ── DELETE a Profile By ID ──
 
 export const deleteProfile = async (req: Request, res: Response) => {
-	const { id } = req.params;
-	const profile = await Profile.findByIdAndDelete(id);
+	const id = req.params.id as string;
+	const profile = await Profile.find({ id: id });
 
 	if (!profile) {
-		res.status(404).json({ status: "error", message: "Profile not found" });
+		return res
+			.status(404)
+			.json({ status: "error", message: "Profile not found" });
 	}
 
-	res.sendStatus(204);
+	return res.sendStatus(204);
+};
+
+// ---- Natural Language Search Profiles ---
+
+export const searchProfiles = async (req: Request, res: Response) => {
+	const q = req.query.q;
+
+	if (!q || typeof q !== "string") {
+		return res.status(400).json({
+			status: "error",
+			message: "Missing or empty query parameter 'q'",
+		});
+	}
+
+	const parsed = parseNaturalQuery(q);
+
+	if (!parsed) {
+		return res.status(400).json({
+			status: "error",
+			message: "Unable to interpret query",
+		});
+	}
+
+	// ---- Build the Mongoose filter from parsed result ----
+	const filter: Record<string, unknown> = {};
+
+	if (parsed.gender) {
+		filter.gender = parsed.gender;
+	}
+
+	if (parsed.country_name) {
+		filter.country_name = parsed.country_name;
+	}
+
+	if (parsed.age_group) {
+		filter.age_group = parsed.age_group;
+	}
+
+	if (parsed.min_age !== undefined || parsed.max_age !== undefined) {
+		filter.age = {};
+		if (parsed.min_age !== undefined) {
+			(filter.age as Record<string, number>).$gte = parsed.min_age;
+		}
+		if (parsed.max_age !== undefined) {
+			(filter.age as Record<string, number>).$lte = parsed.max_age;
+		}
+	}
+
+	// ---- Pagination ----
+	const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+	const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 10);
+	const skip = (page - 1) * limit;
+
+	try {
+		const [profiles, total] = await Promise.all([
+			Profile.find(filter).skip(skip).limit(limit),
+			Profile.countDocuments(filter),
+		]);
+
+		return res.status(200).json({
+			status: "success",
+			total,
+			page,
+			limit,
+			data: profiles,
+		});
+	} catch (error) {
+		return res.status(500).json({
+			status: "error",
+			message: "Server error while searching profiles",
+		});
+	}
 };

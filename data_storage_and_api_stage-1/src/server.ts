@@ -11,8 +11,8 @@ import mongoose from "mongoose";
 export const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use("/api", profileRouter);
 app.use(express.json());
+app.use("/api/profiles", profileRouter);
 app.use(cors);
 
 // --- MongoDB Database Set up ---
