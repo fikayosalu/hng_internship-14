@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { v7 as uuidv7 } from "uuid";
+import { uuidv7 } from "uuidv7";
 
 const profileSchema = new Schema(
 	{
