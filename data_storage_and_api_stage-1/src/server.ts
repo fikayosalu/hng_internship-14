@@ -8,7 +8,7 @@ import { profileRouter } from "./routes/profileRouter";
 import cors from "cors";
 import mongoose from "mongoose";
 
-export const app = express();
+const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
@@ -24,3 +24,5 @@ mongoose.connect(process.env.DATABASE!);
 app.listen(PORT, () => {
 	console.log(`Server is running on ${PORT}`);
 });
+
+export default app;
