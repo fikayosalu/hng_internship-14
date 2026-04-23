@@ -83,10 +83,10 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 			status: "success",
 			page: Number(req.query.page) || 1,
 			limit:
-				Number(req.query.page) > 50
+				Number(req.query.limit) > 50
 					? 50
-					: Number(req.query.page)
-						? Number(req.query.page)
+					: Number(req.query.limit)
+						? Number(req.query.limit)
 						: 10,
 			total,
 			data: profiles,
