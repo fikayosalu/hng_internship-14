@@ -12,8 +12,8 @@ export const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
+app.use(cors());
 app.use("/api/profiles", profileRouter);
-app.use(cors);
 
 // --- MongoDB Database Set up ---
 
@@ -21,4 +21,6 @@ mongoose.connect(process.env.DATABASE!);
 
 // --- Set up server to listen for API calls
 
-app.listen(PORT, () => {});
+app.listen(PORT, () => {
+	console.log(`Server is running on ${PORT}`);
+});
