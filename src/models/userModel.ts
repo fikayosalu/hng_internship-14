@@ -25,6 +25,10 @@ const userSchema = new Schema(
 			type: Boolean,
 			default: true,
 		},
+		refresh_token: {
+			type: String,
+			default: null,
+		},
 		last_login_at: Date,
 		created_at: {
 			type: Date,

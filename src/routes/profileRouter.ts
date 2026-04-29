@@ -11,10 +11,12 @@ import {
 	searchProfiles,
 } from "../controllers/profileController";
 
-export const profileRouter = express.Router();
+const profileRouter = express.Router();
 
 profileRouter.route("/").get(getAllProfiles).post(createProfile);
 
 profileRouter.route("/search").get(searchProfiles);
 
 profileRouter.route("/:id").get(getProfile).delete(deleteProfile);
+
+export default profileRouter;
