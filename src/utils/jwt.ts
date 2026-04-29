@@ -1,8 +1,13 @@
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 
-interface User {
+export interface TokenPayLoad {
 	id: string;
+	role: string;
+}
+
+interface UserForToken {
+	id: string | unknown;
 	role: string;
 }
 
@@ -12,16 +17,20 @@ interface User {
 
 // console.log(jwt.verify(token, process.env.JWT_SECRET!), token);
 
-export const generateAccessToken = (user: User) => {
-	return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET!, {
-		expiresIn: "3m",
-	});
+export const generateAccessToken = (user: UserForToken) => {
+	return jwt.sign(
+		{ id: String(user.id), role: user.role },
+		process.env.JWT_SECRET!,
+		{
+			expiresIn: "3m",
+		},
+	);
 };
-export const generateRefreshToken = (user: User) => {
-	return jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
+export const generateRefreshToken = (user: UserForToken) => {
+	return jwt.sign({ id: String(user.id) }, process.env.JWT_SECRET!, {
 		expiresIn: "5m",
 	});
 };
-export const verifyToken = (token: string) => {
-	return jwt.verify(token, process.env.JWT_SECRET!);
+export const verifyToken = (token: string): TokenPayLoad => {
+	return jwt.verify(token, process.env.JWT_SECRET!) as TokenPayLoad;
 };
