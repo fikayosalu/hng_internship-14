@@ -1,6 +1,7 @@
 import express from "express";
 import passport from "passport";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
+import { logOut, refreshToken } from "../controllers/authController";
 
 const authRouter = express.Router();
 
@@ -23,6 +24,10 @@ authRouter
 			.status(200)
 			.json({ access_token: accessToken, refresh_token: refreshToken });
 	});
+
+authRouter.route("/refresh").post(refreshToken);
+
+authRouter.route("/logout").post(logOut);
 
 authRouter.route("/github/failure").get((req, res) => {
 	return res.status(401).json({

@@ -68,13 +68,13 @@ export const logOut = async (req: Request, res: Response) => {
 			await existingUser.save();
 			return res.status(200).json({
 				status: "success",
-				message: "",
+				message: "Logged out successfully",
 			});
 		} else {
 			throw new Error();
 		}
 	} catch (error) {
-		return res.status(404).json({
+		return res.status(401).json({
 			status: "error",
 			message: "Invalid refresh token",
 		});
