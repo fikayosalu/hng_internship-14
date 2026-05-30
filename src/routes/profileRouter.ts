@@ -11,9 +11,11 @@ import {
 	searchProfiles,
 } from "../controllers/profileController";
 import { authenticate, authorizeRoles } from "../middlewares/authenticate";
+import checkVersion from "../middlewares/apiVersion";
 
 const profileRouter = express.Router();
 
+profileRouter.use(checkVersion);
 profileRouter
 	.route("/")
 	.get(authenticate, authorizeRoles("admin", "analyst"), getAllProfiles)
