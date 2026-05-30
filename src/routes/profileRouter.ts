@@ -10,13 +10,22 @@ import {
 	getProfile,
 	searchProfiles,
 } from "../controllers/profileController";
+import { authenticate, authorizeRoles } from "../middlewares/authenticate";
 
 const profileRouter = express.Router();
 
-profileRouter.route("/").get(getAllProfiles).post(createProfile);
+profileRouter
+	.route("/")
+	.get(authenticate, authorizeRoles("admin", "analyst"), getAllProfiles)
+	.post(authenticate, authorizeRoles("admin"), createProfile);
 
-profileRouter.route("/search").get(searchProfiles);
+profileRouter
+	.route("/search")
+	.get(authenticate, authorizeRoles("admin", "analyst"), searchProfiles);
 
-profileRouter.route("/:id").get(getProfile).delete(deleteProfile);
+profileRouter
+	.route("/:id")
+	.get(authenticate, authorizeRoles("admin", "analyst"), getProfile)
+	.delete(authenticate, authorizeRoles("admin"), deleteProfile);
 
 export default profileRouter;

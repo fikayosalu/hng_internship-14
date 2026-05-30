@@ -4,3 +4,4 @@ profiles.json
 dist/
 seed_profiles.json
 exportSeed.ts
+types
