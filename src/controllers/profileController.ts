@@ -5,6 +5,7 @@
 import { Request, Response } from "express";
 import Profile from "../models/profileModel";
 import { parseNaturalQuery } from "../utils/queryParser";
+import buildLink from "../utils/buildLink";
 
 // ── GET All Profiles ──
 
@@ -18,7 +19,6 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 		"fields",
 		"min_age",
 		"max_age",
-		"min_age",
 		"min_gender_probability",
 		"min_country_probability",
 	];
@@ -40,12 +40,12 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 
 		if (req.query.min_gender_probability) {
 			const minGenderProb = Number(req.query.min_gender_probability);
-			query = query.find({ age: { $gte: minGenderProb } });
+			query = query.find({ gender_probability: { $gte: minGenderProb } });
 		}
 
 		if (req.query.min_country_probability) {
 			const minCountryProb = Number(req.query.min_country_probability);
-			query = query.find({ age: { $gte: minCountryProb } });
+			query = query.find({ country_probability: { $gte: minCountryProb } });
 		}
 
 		if (req.query.sort_by) {
@@ -61,8 +61,8 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 			query = query.sort("age");
 		}
 
-		let page = Number(req.query.page) || 1;
-		let limit = Number(req.query.limit) || 10;
+		let page = Math.max(1, Number(req.query.page)) || 1;
+		let limit = Math.max(1, Number(req.query.limit)) || 10;
 
 		if (limit > 50) {
 			limit = 50;
@@ -73,12 +73,21 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 
 		const profiles = await query;
 		const total = await Profile.countDocuments(queryObj);
+		const total_pages = Math.ceil(total / limit);
 		return res.status(200).json({
 			status: "success",
 			page,
 			limit,
 			total,
-			total_pages: Math.ceil(total / limit),
+			total_pages,
+			links: {
+				self: buildLink(req, String(page), String(limit)),
+				prev: page === 1 ? null : buildLink(req, String(page - 1), String(limit)),
+				next:
+					page === total_pages
+						? null
+						: buildLink(req, String(page + 1), String(limit)),
+			},
 			data: profiles,
 		});
 	} catch (error) {
@@ -221,11 +230,22 @@ export const searchProfiles = async (req: Request, res: Response) => {
 			Profile.countDocuments(filter),
 		]);
 
+		const total_pages = Math.ceil(total / limit);
+
 		return res.status(200).json({
 			status: "success",
 			total,
 			page,
 			limit,
+			total_pages,
+			links: {
+				self: buildLink(req, String(page), String(limit)),
+				prev: page === 1 ? null : buildLink(req, String(page - 1), String(limit)),
+				next:
+					page === total_pages
+						? null
+						: buildLink(req, String(page + 1), String(limit)),
+			},
 			data: profiles,
 		});
 	} catch (error) {
