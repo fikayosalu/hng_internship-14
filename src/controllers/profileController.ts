@@ -61,34 +61,24 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 			query = query.sort("age");
 		}
 
-		if (req.query.page || req.query.limit) {
-			const page = Number(req.query.page) || 1;
-			let limit = Number(req.query.limit) || 10;
+		let page = Number(req.query.page) || 1;
+		let limit = Number(req.query.limit) || 10;
 
-			if (limit > 50) {
-				limit = 50;
-			}
-			const skip = (page - 1) * limit;
-
-			query = query.skip(skip).limit(limit);
-		} else {
-			const page = 1;
-			const limit = 10;
-			const skip = (page - 1) * limit;
-			query = query.skip(skip).limit(limit);
+		if (limit > 50) {
+			limit = 50;
 		}
+		const skip = (page - 1) * limit;
+
+		query = query.skip(skip).limit(limit);
+
 		const profiles = await query;
 		const total = await Profile.countDocuments(queryObj);
 		return res.status(200).json({
 			status: "success",
-			page: Number(req.query.page) || 1,
-			limit:
-				Number(req.query.limit) > 50
-					? 50
-					: Number(req.query.limit)
-						? Number(req.query.limit)
-						: 10,
+			page,
+			limit,
 			total,
+			total_pages: Math.ceil(total / limit),
 			data: profiles,
 		});
 	} catch (error) {
