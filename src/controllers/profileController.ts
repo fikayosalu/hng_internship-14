@@ -6,6 +6,8 @@ import { Request, Response } from "express";
 import Profile from "../models/profileModel";
 import { parseNaturalQuery } from "../utils/queryParser";
 import buildLink from "../utils/buildLink";
+import { agify, genderize, nationalize } from "../utils/externalAPI";
+import countries from "i18n-iso-countries";
 
 // ── GET All Profiles ──
 
@@ -97,34 +99,40 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 
 // --- Create a Profile ----
 export const createProfile = async (req: Request, res: Response) => {
-	const bodyArr = [
-		"name",
-		"age",
-		"age_group",
-		"country_name",
-		"country_id",
-		"gender",
-		"gender_probability",
-		"country_probability",
-	];
-
-	for (const el of bodyArr) {
-		if (!(el in req.body)) {
-			return res
-				.status(400)
-				.json({ status: "error", message: `Missing parameter: ${el}` });
-		}
+	if (!req.body.name) {
+		return res
+			.status(400)
+			.json({ status: "error", message: `Missing parameter` });
 	}
 
 	try {
-		const existingProfile = await Profile.find({ name: req.body.name.trim() });
-		if (existingProfile.length > 0) {
+		const existingProfile = await Profile.findOne({ name: req.body.name.trim() });
+		if (existingProfile) {
 			return res
 				.status(400)
 				.json({ status: "error", message: "name already exists" });
 		}
 
-		let profile = await Profile.create(req.body);
+		const [age, gender, country] = await Promise.all([
+			agify(req.body.name),
+			genderize(req.body.name),
+			nationalize(req.body.name),
+		]);
+
+		const countryName = countries.getName(country.country_id, "en");
+
+		const createProfile = {
+			name: req.body.name,
+			age: age.age,
+			age_group: age.age_group,
+			country_name: countryName || null,
+			country_id: country.country_id,
+			gender: gender.gender,
+			gender_probability: gender.gender_probability,
+			country_probability: country.country_probability,
+		};
+
+		let profile = await Profile.create(createProfile);
 
 		return res.status(201).json({
 			status: "success",
@@ -155,6 +163,74 @@ export const getProfile = async (req: Request, res: Response) => {
 		data: profile,
 	});
 };
+
+// // --- EXPORT profiles in an CSV File
+
+// export const exportProfileCsv = async (req: Request, res: Response) => {
+// 	const queryObj = { ...req.query };
+// 	const excludedFields = [
+// 		"page",
+// 		"sort_by",
+// 		"order",
+// 		"limit",
+// 		"fields",
+// 		"min_age",
+// 		"max_age",
+// 		"min_gender_probability",
+// 		"min_country_probability",
+// 		"format",
+// 	];
+
+// 	excludedFields.forEach((el) => delete queryObj[el]);
+
+// 	try {
+// 		let query = Profile.find(queryObj);
+
+// 		if (req.query.min_age) {
+// 			const minAge = Number(req.query.min_age);
+// 			query = query.find({ age: { $gte: minAge } });
+// 		}
+
+// 		if (req.query.max_age) {
+// 			const maxAge = Number(req.query.max_age);
+// 			query = query.find({ age: { $lte: maxAge } });
+// 		}
+
+// 		if (req.query.min_gender_probability) {
+// 			const minGenderProb = Number(req.query.min_gender_probability);
+// 			query = query.find({ gender_probability: { $gte: minGenderProb } });
+// 		}
+
+// 		if (req.query.min_country_probability) {
+// 			const minCountryProb = Number(req.query.min_country_probability);
+// 			query = query.find({ country_probability: { $gte: minCountryProb } });
+// 		}
+
+// 		if (req.query.sort_by) {
+// 			let sortBy = req.query.sort_by as string;
+
+// 			if (req.query.order && req.query.order === "desc") {
+// 				sortBy = `-${sortBy}`;
+// 				query = query.sort(sortBy);
+// 			} else {
+// 				query = query.sort(sortBy);
+// 			}
+// 		} else {
+// 			query = query.sort("age");
+// 		}
+
+// 		const profile = await query;
+
+// 		const format = req.query.format;
+
+// 		if (!format && format !== "csv") {
+// 			return res.status(400).json({
+// 				status: "error",
+// 				message: "Export format not specified",
+// 			});
+// 		}
+// 	} catch {}
+// };
 
 // ── DELETE a Profile By ID ──
 
