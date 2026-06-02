@@ -6,6 +6,7 @@ import express from "express";
 import {
 	createProfile,
 	deleteProfile,
+	exportProfileCsv,
 	getAllProfiles,
 	getProfile,
 	searchProfiles,
@@ -20,6 +21,10 @@ profileRouter
 	.route("/")
 	.get(authenticate, authorizeRoles("admin", "analyst"), getAllProfiles)
 	.post(authenticate, authorizeRoles("admin"), createProfile);
+
+profileRouter
+	.route("/export")
+	.get(authenticate, authorizeRoles("admin", "analyst"), exportProfileCsv);
 
 profileRouter
 	.route("/search")

@@ -164,73 +164,95 @@ export const getProfile = async (req: Request, res: Response) => {
 	});
 };
 
-// // --- EXPORT profiles in an CSV File
+// --- EXPORT profiles in an CSV File
 
-// export const exportProfileCsv = async (req: Request, res: Response) => {
-// 	const queryObj = { ...req.query };
-// 	const excludedFields = [
-// 		"page",
-// 		"sort_by",
-// 		"order",
-// 		"limit",
-// 		"fields",
-// 		"min_age",
-// 		"max_age",
-// 		"min_gender_probability",
-// 		"min_country_probability",
-// 		"format",
-// 	];
+export const exportProfileCsv = async (req: Request, res: Response) => {
+	const format = req.query.format;
 
-// 	excludedFields.forEach((el) => delete queryObj[el]);
+	if (!format || format !== "csv") {
+		return res.status(400).json({
+			status: "error",
+			message: "Export format not specified",
+		});
+	}
 
-// 	try {
-// 		let query = Profile.find(queryObj);
+	const queryObj = { ...req.query };
+	const excludedFields = [
+		"page",
+		"sort_by",
+		"order",
+		"limit",
+		"fields",
+		"min_age",
+		"max_age",
+		"min_gender_probability",
+		"min_country_probability",
+		"format",
+	];
 
-// 		if (req.query.min_age) {
-// 			const minAge = Number(req.query.min_age);
-// 			query = query.find({ age: { $gte: minAge } });
-// 		}
+	excludedFields.forEach((el) => delete queryObj[el]);
 
-// 		if (req.query.max_age) {
-// 			const maxAge = Number(req.query.max_age);
-// 			query = query.find({ age: { $lte: maxAge } });
-// 		}
+	try {
+		let query = Profile.find(queryObj);
 
-// 		if (req.query.min_gender_probability) {
-// 			const minGenderProb = Number(req.query.min_gender_probability);
-// 			query = query.find({ gender_probability: { $gte: minGenderProb } });
-// 		}
+		if (req.query.min_age) {
+			const minAge = Number(req.query.min_age);
+			query = query.find({ age: { $gte: minAge } });
+		}
 
-// 		if (req.query.min_country_probability) {
-// 			const minCountryProb = Number(req.query.min_country_probability);
-// 			query = query.find({ country_probability: { $gte: minCountryProb } });
-// 		}
+		if (req.query.max_age) {
+			const maxAge = Number(req.query.max_age);
+			query = query.find({ age: { $lte: maxAge } });
+		}
 
-// 		if (req.query.sort_by) {
-// 			let sortBy = req.query.sort_by as string;
+		if (req.query.min_gender_probability) {
+			const minGenderProb = Number(req.query.min_gender_probability);
+			query = query.find({ gender_probability: { $gte: minGenderProb } });
+		}
 
-// 			if (req.query.order && req.query.order === "desc") {
-// 				sortBy = `-${sortBy}`;
-// 				query = query.sort(sortBy);
-// 			} else {
-// 				query = query.sort(sortBy);
-// 			}
-// 		} else {
-// 			query = query.sort("age");
-// 		}
+		if (req.query.min_country_probability) {
+			const minCountryProb = Number(req.query.min_country_probability);
+			query = query.find({ country_probability: { $gte: minCountryProb } });
+		}
 
-// 		const profile = await query;
+		if (req.query.sort_by) {
+			let sortBy = req.query.sort_by as string;
 
-// 		const format = req.query.format;
+			if (req.query.order && req.query.order === "desc") {
+				sortBy = `-${sortBy}`;
+				query = query.sort(sortBy);
+			} else {
+				query = query.sort(sortBy);
+			}
+		} else {
+			query = query.sort("-created_at");
+		}
 
-// 		if (!format && format !== "csv") {
-// 			return res.status(400).json({
-// 				status: "error",
-// 				message: "Export format not specified",
-// 			});
-// 		}
-// 	} catch {}
-// };
+		const profiles = await query;
+
+		const header =
+			"id,name,gender,gender_probability,age,age_group,country_id,country_name,country_probability,created_at";
+
+		const rows = profiles.map((p) => {
+			return `${p.id},${p.name},${p.gender},${p.gender_probability},${p.age},${p.age_group},${p.country_id},${p.country_name},${p.country_probability},${p.created_at}`;
+		});
+
+		const csvString = [header, ...rows].join("\n");
+
+		res.setHeader("Content-Type", "text/csv");
+		res.setHeader(
+			"Content-Disposition",
+			`attachment; filename="profiles_${Date.now()}.csv"`,
+		);
+
+		res.status(200).send(csvString);
+	} catch {
+		return res.status(500).json({
+			status: "error",
+			message: "Failed to export profiles",
+		});
+	}
+};
 
 // ── DELETE a Profile By ID ──
 
