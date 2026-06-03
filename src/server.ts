@@ -2,7 +2,7 @@
  * This module contains the set up for database and express servers
  */
 
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import "dotenv/config";
 import profileRouter from "./routes/profileRouter";
 import cors from "cors";
@@ -12,6 +12,8 @@ import passport from "passport";
 import authRouter from "./routes/authRouter";
 import { limit10, limit60 } from "./utils/limiter";
 import morgan from "morgan";
+import ApiErrorClass from "./classFactory/apiErrorClass";
+import globalErrorHandler from "./controllers/errorController";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,6 +25,14 @@ app.use(passport.initialize());
 
 app.use("/auth", limit10, authRouter);
 app.use("/api/profiles", limit60, profileRouter);
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+	return next(
+		new ApiErrorClass(400, `The path ${req.originalUrl} does not exist`),
+	);
+});
+
+app.use(globalErrorHandler);
 
 // --- MongoDB Database Set up ---
 
