@@ -5,64 +5,52 @@ import {
 	verifyToken,
 } from "../utils/jwt";
 import User from "../models/userModel";
+import ApiErrorClass from "../errorFactory/apiErrorClass";
 
 export const refreshToken = async (req: Request, res: Response) => {
 	if (!req.body.refresh_token) {
-		return res.status(400).json({
-			status: "error",
-			message: "Missing refresh token",
-		});
+		throw new ApiErrorClass(400, "Missing refresh token");
 	}
 
-	try {
-		const tokenPayLoad = verifyToken(req.body.refresh_token);
+	const tokenPayLoad = verifyToken(req.body.refresh_token);
 
-		const id = tokenPayLoad.id;
+	const id = tokenPayLoad.id;
 
-		const existingUser = await User.findOne({ id: id });
+	const existingUser = await User.findOne({ id: id });
 
-		if (existingUser) {
-			if (existingUser.refresh_token === req.body.refresh_token) {
-				const accessToken = generateAccessToken(existingUser);
-				const refreshToken = generateRefreshToken(existingUser);
+	if (!existingUser) {
+		throw new ApiErrorClass(404, "No user matches this refresh token ");
+	}
 
-				existingUser.refresh_token = refreshToken;
+	if (existingUser.refresh_token === req.body.refresh_token) {
+		const accessToken = generateAccessToken(existingUser);
+		const refreshToken = generateRefreshToken(existingUser);
 
-				await existingUser.save();
+		existingUser.refresh_token = refreshToken;
 
-				return res.status(200).json({
-					status: "success",
-					access_token: accessToken,
-					refresh_token: refreshToken,
-				});
-			} else {
-				throw new Error();
-			}
-		} else {
-			throw new Error();
-		}
-	} catch (error) {
-		return res.status(401).json({
-			status: "error",
-			message: "Invalid or expired refresh token",
+		await existingUser.save();
+
+		return res.status(200).json({
+			status: "success",
+			access_token: accessToken,
+			refresh_token: refreshToken,
 		});
+	} else {
+		throw new ApiErrorClass(401, "Refresh token does not match existing data");
 	}
 };
 
 export const logOut = async (req: Request, res: Response) => {
 	if (!req.body.refresh_token) {
-		return res.status(400).json({
-			status: "error",
-			message: "Missing refresh token",
-		});
+		throw new ApiErrorClass(400, "Missing refresh token");
 	}
 
-	try {
-		const tokenPayLoad = verifyToken(req.body.refresh_token);
+	const tokenPayLoad = verifyToken(req.body.refresh_token);
 
-		const existingUser = await User.findOne({ id: tokenPayLoad.id });
+	const existingUser = await User.findOne({ id: tokenPayLoad.id });
 
-		if (existingUser) {
+	if (existingUser) {
+		if (existingUser.refresh_token === req.body.refresh_token) {
 			existingUser.refresh_token = null;
 
 			await existingUser.save();
@@ -71,12 +59,9 @@ export const logOut = async (req: Request, res: Response) => {
 				message: "Logged out successfully",
 			});
 		} else {
-			throw new Error();
+			throw new ApiErrorClass(401, "Refresh token does not match existing data");
 		}
-	} catch (error) {
-		return res.status(401).json({
-			status: "error",
-			message: "Invalid refresh token",
-		});
+	} else {
+		throw new ApiErrorClass(404, "No user matches this refresh token ");
 	}
 };

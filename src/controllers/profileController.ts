@@ -5,29 +5,30 @@
 import { Request, Response } from "express";
 import Profile from "../models/profileModel";
 import { parseNaturalQuery } from "../utils/queryParser";
-import buildLink from "../utils/buildLink";
+import { buildLink, catchAsync } from "../utils/helper";
 import { agify, genderize, nationalize } from "../utils/externalAPI";
 import countries from "i18n-iso-countries";
+import ApiErrorClass from "../errorFactory/apiErrorClass";
 
 // ── GET All Profiles ──
 
-export const getAllProfiles = async (req: Request, res: Response) => {
-	const queryObj = { ...req.query };
-	const excludedFields = [
-		"page",
-		"sort_by",
-		"order",
-		"limit",
-		"fields",
-		"min_age",
-		"max_age",
-		"min_gender_probability",
-		"min_country_probability",
-	];
+export const getAllProfiles = catchAsync(
+	async (req: Request, res: Response) => {
+		const queryObj = { ...req.query };
+		const excludedFields = [
+			"page",
+			"sort_by",
+			"order",
+			"limit",
+			"fields",
+			"min_age",
+			"max_age",
+			"min_gender_probability",
+			"min_country_probability",
+		];
 
-	excludedFields.forEach((el) => delete queryObj[el]);
+		excludedFields.forEach((el) => delete queryObj[el]);
 
-	try {
 		let query = Profile.find(queryObj);
 
 		if (req.query.min_age) {
@@ -92,107 +93,85 @@ export const getAllProfiles = async (req: Request, res: Response) => {
 			},
 			data: profiles,
 		});
-	} catch (error) {
-		return res.status(400).json({ status: "error", message: `${error}` });
-	}
-};
+	},
+);
 
 // --- Create a Profile ----
-export const createProfile = async (req: Request, res: Response) => {
+export const createProfile = catchAsync(async (req: Request, res: Response) => {
 	if (!req.body.name) {
-		return res
-			.status(400)
-			.json({ status: "error", message: `Missing parameter` });
+		throw new ApiErrorClass(400, "Missing name parameter");
 	}
 
-	try {
-		const existingProfile = await Profile.findOne({ name: req.body.name.trim() });
-		if (existingProfile) {
-			return res
-				.status(400)
-				.json({ status: "error", message: "name already exists" });
-		}
+	const [age, gender, country] = await Promise.all([
+		agify(req.body.name),
+		genderize(req.body.name),
+		nationalize(req.body.name),
+	]);
 
-		const [age, gender, country] = await Promise.all([
-			agify(req.body.name),
-			genderize(req.body.name),
-			nationalize(req.body.name),
-		]);
+	const countryName = countries.getName(country.country_id, "en");
 
-		const countryName = countries.getName(country.country_id, "en");
+	const createProfile = {
+		name: req.body.name,
+		age: age.age,
+		age_group: age.age_group,
+		country_name: countryName || null,
+		country_id: country.country_id,
+		gender: gender.gender,
+		gender_probability: gender.gender_probability,
+		country_probability: country.country_probability,
+	};
 
-		const createProfile = {
-			name: req.body.name,
-			age: age.age,
-			age_group: age.age_group,
-			country_name: countryName || null,
-			country_id: country.country_id,
-			gender: gender.gender,
-			gender_probability: gender.gender_probability,
-			country_probability: country.country_probability,
-		};
+	let profile = await Profile.create(createProfile);
 
-		let profile = await Profile.create(createProfile);
-
-		return res.status(201).json({
-			status: "success",
-			data: profile,
-		});
-	} catch (error) {
-		return res
-			.status(400)
-			.json({ status: "error", message: "Missing or empty parameter" });
-	}
-};
+	return res.status(201).json({
+		status: "success",
+		data: profile,
+	});
+});
 
 // ---- GET A PROFILE BY ID ------
 
-export const getProfile = async (req: Request, res: Response) => {
+export const getProfile = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
 
-	const profile = await Profile.find({ id: id });
+	const profile = await Profile.findOne({ id: id });
 
-	if (profile.length === 0) {
-		return res
-			.status(404)
-			.json({ status: "error", message: "Profile not found" });
+	if (!profile) {
+		throw new ApiErrorClass(404, "Profile does not exist");
 	}
 
 	return res.status(200).json({
 		status: "success",
 		data: profile,
 	});
-};
+});
 
-// --- EXPORT profiles in an CSV File
+// --- EXPORT profiles in an CSV File ---
 
-export const exportProfileCsv = async (req: Request, res: Response) => {
-	const format = req.query.format;
+export const exportProfileCsv = catchAsync(
+	async (req: Request, res: Response) => {
+		const format = req.query.format;
 
-	if (!format || format !== "csv") {
-		return res.status(400).json({
-			status: "error",
-			message: "Export format not specified",
-		});
-	}
+		if (!format || format !== "csv") {
+			throw new ApiErrorClass(400, "Export format must be specified as csv");
+		}
 
-	const queryObj = { ...req.query };
-	const excludedFields = [
-		"page",
-		"sort_by",
-		"order",
-		"limit",
-		"fields",
-		"min_age",
-		"max_age",
-		"min_gender_probability",
-		"min_country_probability",
-		"format",
-	];
+		const queryObj = { ...req.query };
+		const excludedFields = [
+			"page",
+			"sort_by",
+			"order",
+			"limit",
+			"fields",
+			"min_age",
+			"max_age",
+			"min_gender_probability",
+			"min_country_probability",
+			"format",
+		];
 
-	excludedFields.forEach((el) => delete queryObj[el]);
+		excludedFields.forEach((el) => delete queryObj[el]);
 
-	try {
 		let query = Profile.find(queryObj);
 
 		if (req.query.min_age) {
@@ -225,7 +204,7 @@ export const exportProfileCsv = async (req: Request, res: Response) => {
 				query = query.sort(sortBy);
 			}
 		} else {
-			query = query.sort("-created_at");
+			query = query.sort("age");
 		}
 
 		const profiles = await query;
@@ -245,84 +224,71 @@ export const exportProfileCsv = async (req: Request, res: Response) => {
 			`attachment; filename="profiles_${Date.now()}.csv"`,
 		);
 
-		res.status(200).send(csvString);
-	} catch {
-		return res.status(500).json({
-			status: "error",
-			message: "Failed to export profiles",
-		});
-	}
-};
+		return res.status(200).send(csvString);
+	},
+);
 
 // ── DELETE a Profile By ID ──
 
-export const deleteProfile = async (req: Request, res: Response) => {
+export const deleteProfile = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
-	const profile = await Profile.find({ id: id });
+	const profile = await Profile.findOne({ id: id });
 
-	if (profile.length === 0) {
-		return res
-			.status(404)
-			.json({ status: "error", message: "Profile not found" });
+	if (!profile) {
+		throw new ApiErrorClass(404, "Profile not found");
 	}
 
 	await Profile.findOneAndDelete({ id: id });
 
 	return res.sendStatus(204);
-};
+});
 
 // ---- Natural Language Search Profiles ---
 
-export const searchProfiles = async (req: Request, res: Response) => {
-	const q = req.query.q;
+export const searchProfiles = catchAsync(
+	async (req: Request, res: Response) => {
+		const q = req.query.q;
 
-	if (!q || typeof q !== "string") {
-		return res.status(400).json({
-			status: "error",
-			message: "Missing or empty query parameter 'q'",
-		});
-	}
-
-	const parsed = parseNaturalQuery(q);
-
-	if (!parsed) {
-		return res.status(400).json({
-			status: "error",
-			message: "Unable to interpret query",
-		});
-	}
-
-	// ---- Build the Mongoose filter from parsed result ----
-	const filter: Record<string, unknown> = {};
-
-	if (parsed.gender) {
-		filter.gender = parsed.gender;
-	}
-
-	if (parsed.country_name) {
-		filter.country_name = parsed.country_name;
-	}
-
-	if (parsed.age_group) {
-		filter.age_group = parsed.age_group;
-	}
-
-	if (parsed.min_age !== undefined || parsed.max_age !== undefined) {
-		filter.age = {};
-		if (parsed.min_age !== undefined) {
-			(filter.age as Record<string, number>).$gte = parsed.min_age;
+		if (!q || typeof q !== "string") {
+			throw new ApiErrorClass(400, "Missing or empty query parameter 'q'");
 		}
-		if (parsed.max_age !== undefined) {
-			(filter.age as Record<string, number>).$lte = parsed.max_age;
+
+		const parsed = parseNaturalQuery(q);
+
+		if (!parsed) {
+			throw new ApiErrorClass(422, "Unable to interpret query");
 		}
-	}
 
-	// ---- Pagination ----
-	const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
-	const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 10);
-	const skip = (page - 1) * limit;
+		// ---- Build the Mongoose filter from parsed result ----
+		const filter: Record<string, unknown> = {};
 
-	try {
+		if (parsed.gender) {
+			filter.gender = parsed.gender;
+		}
+
+		if (parsed.country_name) {
+			filter.country_name = parsed.country_name;
+		}
+
+		if (parsed.age_group) {
+			filter.age_group = parsed.age_group;
+		}
+
+		if (parsed.min_age !== undefined || parsed.max_age !== undefined) {
+			filter.age = {};
+			if (parsed.min_age !== undefined) {
+				(filter.age as Record<string, number>).$gte = parsed.min_age;
+			}
+			if (parsed.max_age !== undefined) {
+				(filter.age as Record<string, number>).$lte = parsed.max_age;
+			}
+		}
+
+		// ---- Pagination ----
+		const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+		const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 10);
+		const skip = (page - 1) * limit;
+
 		const [profiles, total] = await Promise.all([
 			Profile.find(filter).skip(skip).limit(limit),
 			Profile.countDocuments(filter),
@@ -346,10 +312,5 @@ export const searchProfiles = async (req: Request, res: Response) => {
 			},
 			data: profiles,
 		});
-	} catch (error) {
-		return res.status(500).json({
-			status: "error",
-			message: "Server error while searching profiles",
-		});
-	}
-};
+	},
+);

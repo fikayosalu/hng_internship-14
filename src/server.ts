@@ -10,9 +10,9 @@ import mongoose from "mongoose";
 import "./config/passport";
 import passport from "passport";
 import authRouter from "./routes/authRouter";
-import { limit10, limit60 } from "./utils/limiter";
+import { limit10, limit60 } from "./utils/helper";
 import morgan from "morgan";
-import ApiErrorClass from "./classFactory/apiErrorClass";
+import ApiErrorClass from "./errorFactory/apiErrorClass";
 import globalErrorHandler from "./controllers/errorController";
 
 const app = express();
