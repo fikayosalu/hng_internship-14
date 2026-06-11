@@ -1,7 +1,13 @@
 import express from "express";
 import passport from "passport";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
-import { logOut, refreshToken } from "../controllers/authController";
+import { authenticate } from "../middlewares/authenticate";
+import {
+	cliGithubAuth,
+	getMe,
+	logOut,
+	refreshToken,
+} from "../controllers/authController";
 
 const authRouter = express.Router();
 
@@ -25,7 +31,11 @@ authRouter
 			.json({ access_token: accessToken, refresh_token: refreshToken });
 	});
 
+authRouter.route("/github/cli").post(cliGithubAuth);
+
 authRouter.route("/refresh").post(refreshToken);
+
+authRouter.route("/me").get(authenticate, getMe);
 
 authRouter.route("/logout").post(logOut);
 
