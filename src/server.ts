@@ -13,7 +13,7 @@ import authRouter from "./routes/authRouter";
 import { limit10, limit60 } from "./utils/helper";
 import morgan from "morgan";
 import ApiErrorClass from "./errorFactory/apiErrorClass";
-import globalErrorHandler from "./controllers/errorController";
+import globalErrorHandler from "./errorFactory/errorController";
 
 const app = express();
 const PORT = process.env.PORT || 4000;

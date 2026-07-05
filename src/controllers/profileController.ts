@@ -132,7 +132,10 @@ export const createProfile = catchAsync(async (req: Request, res: Response) => {
 // ---- GET A PROFILE BY ID ------
 
 export const getProfile = catchAsync(async (req: Request, res: Response) => {
-	const id = req.params.id as string;
+	if (!req.params.id) {
+		throw new ApiErrorClass(400, "Missing id parameter");
+	}
+	const id = req.params.id;
 
 	const profile = await Profile.findOne({ id: id });
 
@@ -146,7 +149,7 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-// --- EXPORT profiles in an CSV File ---
+// --- EXPORT profiles in a CSV File ---
 
 export const exportProfileCsv = catchAsync(
 	async (req: Request, res: Response) => {
@@ -231,7 +234,9 @@ export const exportProfileCsv = catchAsync(
 // ── DELETE a Profile By ID ──
 
 export const deleteProfile = catchAsync(async (req: Request, res: Response) => {
-	const id = req.params.id as string;
+	const id = req.params.id;
+	if (!id) throw new ApiErrorClass(400, "Missing ID parameter");
+
 	const profile = await Profile.findOne({ id: id });
 
 	if (!profile) {

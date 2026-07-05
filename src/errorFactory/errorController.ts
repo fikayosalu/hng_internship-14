@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { handleJWTErr } from "./errorHandlers";
 
 const sendProdError = (err: any, res: Response) => {
 	if (err.isOperational) {
@@ -31,7 +32,12 @@ const globalErrorHandler = (
 	res: Response,
 	next: NextFunction,
 ) => {
-	sendProdError(err, res);
+	err.status = err.status || "error";
+	err.statusCode = err.statusCode || 500;
+	let error = { ...err, message: err.message, name: err.name };
+	if (error.name === "JsonWebTokenError") error = handleJWTErr(error);
+
+	sendProdError(error, res);
 };
 
 export default globalErrorHandler;
