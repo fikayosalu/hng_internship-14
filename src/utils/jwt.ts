@@ -22,13 +22,13 @@ export const generateAccessToken = (user: UserForToken) => {
 		{ id: String(user.id), role: user.role },
 		process.env.JWT_SECRET!,
 		{
-			expiresIn: "3m",
+			expiresIn: "10m",
 		},
 	);
 };
 export const generateRefreshToken = (user: UserForToken) => {
 	return jwt.sign({ id: String(user.id) }, process.env.JWT_SECRET!, {
-		expiresIn: "5m",
+		expiresIn: "12m",
 	});
 };
 export const verifyToken = (token: string): TokenPayLoad => {

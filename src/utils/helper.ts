@@ -1,5 +1,6 @@
 import rateLimit from "express-rate-limit";
 import { NextFunction, Request, Response } from "express";
+import axios from "axios";
 
 export const limit10 = rateLimit({
 	windowMs: 60 * 1000,
@@ -37,4 +38,20 @@ export const catchAsync = (fn: Function) => {
 	return (req: Request, res: Response, next: NextFunction) => {
 		fn(req, res, next).catch(next);
 	};
+};
+
+export const handleAxiosErr = (err: unknown): never => {
+	if (axios.isAxiosError(err) && err.response) {
+		if (err.response.status === 422) {
+			throw new Error("Invalid name parameter");
+		} else if (err.response.status === 429) {
+			throw new Error("Request limit reached");
+		} else {
+			throw new Error(`${err.message}` || "Something went wrong");
+		}
+	} else if (err instanceof Error) {
+		throw new Error(`${err.message}`);
+	} else {
+		throw new Error("Something went wrong");
+	}
 };

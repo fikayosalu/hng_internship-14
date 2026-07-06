@@ -1,5 +1,6 @@
 import axios from "axios";
 import "dotenv/config";
+import { handleAxiosErr } from "./helper";
 
 export const genderize = async (name: string) => {
 	interface T {
@@ -14,7 +15,7 @@ export const genderize = async (name: string) => {
 		const { gender, probability, count } = response.data;
 
 		if (gender === null || count === 0) {
-			throw new Error();
+			throw new Error("Gender was not determined");
 		}
 
 		return {
@@ -23,7 +24,8 @@ export const genderize = async (name: string) => {
 			count,
 		};
 	} catch (error) {
-		throw new Error("Genderize");
+		handleAxiosErr(error);
+		throw error;
 	}
 };
 
@@ -34,11 +36,12 @@ export const agify = async (name: string) => {
 	try {
 		const response = await axios<T>(`https://api.agify.io?name=${name}`, {
 			timeout: 5000,
+			timeoutErrorMessage: "Request timed out",
 		});
 		const { age } = response.data;
 
 		if (age === null) {
-			throw new Error();
+			throw new Error("Age was not determined");
 		}
 
 		return {
@@ -53,7 +56,8 @@ export const agify = async (name: string) => {
 							: "senior",
 		};
 	} catch (error) {
-		throw new Error("Agify");
+		handleAxiosErr(error);
+		throw error;
 	}
 };
 
@@ -75,7 +79,7 @@ export const nationalize = async (name: string) => {
 		const { country } = response.data;
 
 		if (!country || country.length === 0) {
-			throw new Error();
+			throw new Error("Country was not determined");
 		}
 
 		const topCountry = country.reduce((max, c) =>
@@ -87,6 +91,7 @@ export const nationalize = async (name: string) => {
 			country_probability: topCountry.probability,
 		};
 	} catch (error) {
-		throw new Error("Nationalize");
+		handleAxiosErr(error);
+		throw error;
 	}
 };

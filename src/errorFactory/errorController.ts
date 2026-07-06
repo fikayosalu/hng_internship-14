@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { handleJWTErr } from "./errorHandlers";
+import { handleDuplicateErr, handleJWTErr } from "./errorHandlers";
 
 const sendProdError = (err: any, res: Response) => {
 	if (err.isOperational) {
@@ -13,6 +13,7 @@ const sendProdError = (err: any, res: Response) => {
 		return res.status(500).json({
 			status: "error",
 			message: "Something went wrong, Please try again",
+			error: err,
 		});
 	}
 };
@@ -35,7 +36,10 @@ const globalErrorHandler = (
 	err.status = err.status || "error";
 	err.statusCode = err.statusCode || 500;
 	let error = { ...err, message: err.message, name: err.name };
-	if (error.name === "JsonWebTokenError") error = handleJWTErr(error);
+	if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+		error = handleJWTErr(error);
+	}
+	if (error.code === 11000) error = handleDuplicateErr(error);
 
 	sendProdError(error, res);
 };
