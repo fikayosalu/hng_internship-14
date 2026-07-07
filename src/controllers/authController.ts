@@ -96,7 +96,7 @@ export const logOut = catchAsync(async (req: Request, res: Response) => {
 // --- OAuth Login Controller for CLI
 export const cliGithubAuth = catchAsync(async (req: Request, res: Response) => {
 	if (!(req.body.code_verifier && req.body.code)) {
-		throw new ApiErrorClass(401, "Missing code or code_verifier");
+		throw new ApiErrorClass(400, "Missing code or code_verifier");
 	}
 
 	const tokenResponse = await axios.post(
