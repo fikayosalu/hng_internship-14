@@ -1,3 +1,8 @@
+/**
+ * This file contains the ApiErrorClass which is the custom errror
+ * class for the systems operational errors
+ */
+
 class ApiErrorClass extends Error {
 	status: string;
 	statusCode: number;

@@ -1,6 +1,12 @@
+/**
+ * This module contains the global error handler to handle
+ * all errors in the request, response cycle
+ */
+
 import { NextFunction, Request, Response } from "express";
 import { handleDuplicateErr, handleJWTErr } from "./errorHandlers";
 
+// Handles error in production environment
 const sendProdError = (err: any, res: Response) => {
 	if (err.isOperational) {
 		return res.status(err.statusCode).json({
@@ -13,20 +19,11 @@ const sendProdError = (err: any, res: Response) => {
 		return res.status(500).json({
 			status: "error",
 			message: "Something went wrong, Please try again",
-			error: err,
 		});
 	}
 };
 
-// const sendDevError = (err: any, res: Response) => {
-// 	return res.status(err.statusCode).json({
-// 		status: err.status,
-// 		error: err,
-// 		message: err.message,
-// 		stack: err.stack,
-// 	});
-// };
-
+// Global error handler
 const globalErrorHandler = (
 	err: any,
 	req: Request,

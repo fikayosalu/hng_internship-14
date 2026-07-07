@@ -1,8 +1,13 @@
+/**
+ * This file contains functions used to perform
+ * specific tasks
+ */
+
 import rateLimit from "express-rate-limit";
 import { NextFunction, Request, Response } from "express";
-import axios from "axios";
 
 export const limit10 = rateLimit({
+	// set request limit to 10 requests per min
 	windowMs: 60 * 1000,
 	max: 10,
 	message: {
@@ -12,6 +17,7 @@ export const limit10 = rateLimit({
 });
 
 export const limit60 = rateLimit({
+	// set request limit to 60 requests per min
 	windowMs: 60 * 1000,
 	max: 60,
 	message: {
@@ -38,20 +44,4 @@ export const catchAsync = (fn: Function) => {
 	return (req: Request, res: Response, next: NextFunction) => {
 		fn(req, res, next).catch(next);
 	};
-};
-
-export const handleAxiosErr = (err: unknown): never => {
-	if (axios.isAxiosError(err) && err.response) {
-		if (err.response.status === 422) {
-			throw new Error("Invalid name parameter");
-		} else if (err.response.status === 429) {
-			throw new Error("Request limit reached");
-		} else {
-			throw new Error(`${err.message}` || "Something went wrong");
-		}
-	} else if (err instanceof Error) {
-		throw new Error(`${err.message}`);
-	} else {
-		throw new Error("Something went wrong");
-	}
 };

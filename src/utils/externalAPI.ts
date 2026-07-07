@@ -1,6 +1,6 @@
 import axios from "axios";
 import "dotenv/config";
-import { handleAxiosErr } from "./helper";
+import { handleAxiosErr } from "../errorFactory/errorHandlers";
 
 export const genderize = async (name: string) => {
 	interface T {

@@ -1,3 +1,8 @@
+/**
+ * This file contains functionality to handle API Versioning
+ * API Version is passed as a request header
+ */
+
 import { Request, Response, NextFunction } from "express";
 
 const checkVersion = (req: Request, res: Response, next: NextFunction) => {

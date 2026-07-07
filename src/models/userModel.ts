@@ -1,3 +1,8 @@
+/**
+ * This file contains the model definition and specification
+ * for the user database
+ */
+
 import mongoose, { Schema } from "mongoose";
 import { uuidv7 } from "uuidv7";
 

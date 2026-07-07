@@ -1,5 +1,5 @@
 /**
- * This module contains the router for profiles model
+ * This file contains all routes related to Profiles
  */
 
 import express from "express";

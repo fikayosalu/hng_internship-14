@@ -1,3 +1,8 @@
+/**
+ * This file contains a helper function to parse
+ * Natural language query for search requests
+ */
+
 interface ParsedQuery {
 	gender?: string;
 	min_age?: number;

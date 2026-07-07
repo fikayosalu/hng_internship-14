@@ -1,3 +1,7 @@
+/**
+ * This file contains all routes related to Authentication
+ */
+
 import express from "express";
 import passport from "passport";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
@@ -37,14 +41,19 @@ authRouter
 		},
 	);
 
+// Handle CLI OAuth login
 authRouter.route("/github/cli").post(cliGithubAuth);
 
+// Handle refresh token
 authRouter.route("/refresh").post(refreshToken);
 
+// Handle the "me" route to get user info
 authRouter.route("/me").get(authenticate, getMe);
 
+// Handle logout
 authRouter.route("/logout").post(logOut);
 
+// Handle Github OAuth login failure
 authRouter.route("/github/failure").get((req, res) => {
 	return res.status(401).json({
 		status: "error",

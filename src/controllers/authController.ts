@@ -1,3 +1,7 @@
+/**
+ * This file contains all functions used for user Authentication
+ */
+
 import { Request, Response } from "express";
 import {
 	generateAccessToken,
@@ -10,14 +14,18 @@ import axios from "axios";
 import { catchAsync } from "../utils/helper";
 
 export const getMe = catchAsync(async (req: Request, res: Response) => {
+	// Returns user information when logged in
 	return res.status(200).json({
 		status: "success",
 		data: req.user,
 	});
 });
 
+/*Take refresh token and create a new access 
+and refresh token for the user*/
 export const refreshToken = catchAsync(async (req: Request, res: Response) => {
 	if (!req.body.refresh_token) {
+		// Throw error if refresh token is not provided
 		throw new ApiErrorClass(400, "Missing refresh token");
 	}
 
@@ -25,13 +33,19 @@ export const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
 	const id = tokenPayLoad.id;
 
+	// Get user from database using ID
 	const existingUser = await User.findOne({ id: id });
 
 	if (!existingUser) {
+		// Throw error if user was not found in database
 		throw new ApiErrorClass(404, "User not found");
 	}
 
 	if (existingUser.refresh_token === req.body.refresh_token) {
+		/* Compare refresh token in request body to the refresh token 
+		in the user database.
+		If the comparison matches generate new access and refresh tokens
+		return them to the user and save the refresh token to the database */
 		const access_token = generateAccessToken(existingUser);
 		const refresh_token = generateRefreshToken(existingUser);
 
@@ -45,15 +59,19 @@ export const refreshToken = catchAsync(async (req: Request, res: Response) => {
 			refresh_token,
 		});
 	} else {
+		// Throw error if refresh token comparison doesn't match
 		throw new ApiErrorClass(401, "Refresh token does not match existing data");
 	}
 });
 
-export const logOut = async (req: Request, res: Response) => {
+// Log user out and invalidates the refresh token
+export const logOut = catchAsync(async (req: Request, res: Response) => {
+	// Check if the refresh token was provided
 	if (!req.body.refresh_token) {
 		throw new ApiErrorClass(400, "Missing refresh token");
 	}
 
+	// Extract the userID from the refresh token
 	const tokenPayLoad = verifyToken(req.body.refresh_token);
 
 	const existingUser = await User.findOne({ id: tokenPayLoad.id });
@@ -73,7 +91,7 @@ export const logOut = async (req: Request, res: Response) => {
 	} else {
 		throw new ApiErrorClass(404, "User not found");
 	}
-};
+});
 
 // --- OAuth Login Controller for CLI
 export const cliGithubAuth = catchAsync(async (req: Request, res: Response) => {

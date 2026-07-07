@@ -1,3 +1,8 @@
+/**
+ * This file handles functions used to generate and verify
+ * Json Web Tokens
+ */
+
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 
@@ -10,12 +15,6 @@ interface UserForToken {
 	id: string | unknown;
 	role: string;
 }
-
-// const token = jwt.sign({ role: "" }, process.env.JWT_SECRET!, {
-// 	expiresIn: "3m",
-// });
-
-// console.log(jwt.verify(token, process.env.JWT_SECRET!), token);
 
 export const generateAccessToken = (user: UserForToken) => {
 	return jwt.sign(

@@ -1,3 +1,8 @@
+/**
+ * This file contains authentication and authorization middleware
+ * It includes functionality to control user's access
+ */
+
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt";
 import User from "../models/userModel";

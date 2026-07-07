@@ -1,3 +1,8 @@
+/**
+ * This file contains functionality to handle Github
+ * OAuth 2.0 login using passport and stores result in the database
+ */
+
 import passport from "passport";
 import { Strategy as GitHubStrategy } from "passport-github2";
 import "dotenv/config";
