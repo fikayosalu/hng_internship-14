@@ -25,7 +25,7 @@ passport.use(
 		{
 			clientID: process.env.GITHUB_CLIENT_ID!,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-			callbackURL: "http://localhost:4000/auth/github/callback",
+			callbackURL: "https://insighta-backend.pxxl.run/auth/github/callback",
 		},
 		async (
 			accessToken: string,
